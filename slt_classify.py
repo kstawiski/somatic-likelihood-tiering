@@ -2,7 +2,7 @@
 """Somatic Likelihood Tiering (SLT) — 4-tier classification for tumor-only WES.
 
 Classifies somatic variants from tumor-only whole-exome sequencing using
-four orthogonal evidence layers (POPAF, gnomAD, GERMQ, COSMIC) and PureCN
+four complementary evidence layers (POPAF, gnomAD, GERMQ, COSMIC) and PureCN
 posterior somatic probabilities, with integrated CHIP detection.
 
 All thresholds frozen from development cohort. No post-hoc optimization.
@@ -29,7 +29,7 @@ POSTERIOR_C = 0.2   # SLT-C eligible gate
 # =============================================================================
 # Evidence Layer Thresholds (frozen from development cohort)
 # =============================================================================
-POPAF_THRESHOLD = 5.0          # Layer 1: Phred-scaled pop AF from Mutect2
+POPAF_THRESHOLD = 5.0          # Layer 1: -log10 pop AF from Mutect2 (>= 5.0 → AF <= 1e-5)
 GNOMAD_AF_THRESHOLD = 0.001    # Layer 2: gnomAD exome AF
 GERMQ_THRESHOLD = 30           # Layer 3: Mutect2 germline quality score
 COSMIC_CONFIRMED_MIN = 5       # Layer 4a: COSMIC confirmed somatic count

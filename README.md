@@ -6,7 +6,7 @@ An interpretable, multi-evidence framework for somatic variant classification in
 
 SLT classifies variants from tumor-only WES into four confidence tiers (SLT-A through SLT-D) using:
 
-- **Four orthogonal evidence layers**: population allele frequency (POPAF), gnomAD annotation, germline quality (GERMQ), and COSMIC recurrence
+- **Four complementary evidence layers**: population allele frequency (POPAF), gnomAD annotation, germline quality (GERMQ), and COSMIC recurrence
 - **PureCN posterior somatic probabilities**: Bayesian posterior from copy number-aware classification
 - **Integrated CHIP detection**: Clonal hematopoiesis of indeterminate potential flagging with curated gene lists
 
@@ -89,7 +89,7 @@ Tab-separated file with the following columns (flexible naming):
 | Field | Alternative Names | Description |
 |-------|-------------------|-------------|
 | `POSTERIOR.SOMATIC` | `POSTERIOR_SOMATIC` | PureCN posterior somatic probability |
-| `POPAF` | | Mutect2 Phred-scaled population allele frequency |
+| `POPAF` | | Mutect2 negative log10 population allele frequency |
 | `gnomAD_AF` | `gnomAD_exome_AF` | gnomAD exome allele frequency |
 | `GERMQ` | | Mutect2 germline quality score |
 | `COSMIC_CONFIRMED_SOMATIC` | | COSMIC confirmed somatic count |
