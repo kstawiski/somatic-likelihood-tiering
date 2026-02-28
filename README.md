@@ -129,8 +129,8 @@ Conditions are evaluated in order; the first match determines the tier:
 | Tier | Meaning | Conditions |
 |------|---------|------------|
 | **SLT-A** | High confidence somatic | Posterior >= 0.8 AND evidence in {high, medium} AND not chip_likely |
-| **SLT-B** | Likely somatic | Posterior >= 0.5, OR (high evidence AND >= 3 layers) |
-| **SLT-C** | Possible somatic | Posterior >= 0.2, OR medium evidence |
+| **SLT-B** | Likely somatic | Posterior >= 0.5, OR (high evidence AND >= 3 layers); chip_likely blocked |
+| **SLT-C** | Possible somatic | Posterior >= 0.2, OR evidence in {high, medium} |
 | **SLT-D** | Unlikely somatic | All remaining variants |
 
 ### Evidence Levels
@@ -148,7 +148,7 @@ Variants in CHIP-associated genes are evaluated for clonal hematopoiesis:
 - **Tier 1 genes** (13 canonical CHIP drivers): DNMT3A, TET2, ASXL1, PPM1D, JAK2, SF3B1, SRSF2, U2AF1, IDH1, IDH2, ZBTB33, GNB1, CBL
 - **Tier 2 genes** (28 extended): TP53, KRAS, NRAS, FLT3, KIT, NPM1, and others
 
-`chip_likely` status blocks SLT-A assignment, preventing high-confidence CHIP variants from reaching the most actionable tier.
+`chip_likely` status blocks both SLT-A and SLT-B assignment, preventing CHIP variants from reaching the most actionable tiers. `chip_likely` variants are downgraded to SLT-C (maximum) or SLT-D.
 
 ### Degraded Mode
 

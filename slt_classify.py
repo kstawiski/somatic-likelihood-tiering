@@ -70,11 +70,19 @@ CHIP_TIER2_HOTSPOTS = {
 }
 
 # Truncating variant consequences (LOF)
+# Includes both MAF/Funcotator terms and VEP Sequence Ontology (SO) terms
+# for caller-agnostic input handling.
 TRUNCATING_CONSEQUENCES = frozenset([
-    "nonsense", "frameshift_del", "frameshift_ins", "splice_site",
-    "translation_start_site", "nonstop_mutation",
+    # MAF / Funcotator terms (CamelCase)
     "Frame_Shift_Del", "Frame_Shift_Ins", "Nonsense_Mutation",
     "Splice_Site", "Translation_Start_Site", "Nonstop_Mutation",
+    # MAF / Funcotator terms (lowercase)
+    "nonsense", "frameshift_del", "frameshift_ins", "splice_site",
+    "translation_start_site", "nonstop_mutation",
+    # VEP Sequence Ontology (SO) terms
+    "stop_gained", "frameshift_variant",
+    "splice_donor_variant", "splice_acceptor_variant",
+    "start_lost", "stop_lost",
 ])
 
 # CHIP VAF Thresholds
@@ -169,20 +177,37 @@ def assign_evidence_level(n_somatic_layers: int, layer4_cosmic: bool) -> str:
 # =============================================================================
 
 def is_hotspot_match(gene: str, protein_change: str, hotspot_dict: dict) -> bool:
-    """Check if a variant matches a CHIP hotspot pattern."""
+    """Check if a variant matches a CHIP hotspot pattern.
+
+    Uses boundary-aware matching: pattern must be followed by a non-digit
+    character (the substituted amino acid) or end of string. This prevents
+    'G12' from matching 'G123V'.
+    """
     if gene not in hotspot_dict or not protein_change:
         return False
+    # Normalize: strip leading "p." if present
+    pc = protein_change[2:] if protein_change.startswith("p.") else protein_change
     for pattern in hotspot_dict[gene]:
-        if protein_change.startswith(pattern) or protein_change.startswith("p." + pattern):
+        if not pc.startswith(pattern):
+            continue
+        # Ensure the match is at a position boundary (next char is not a digit)
+        remainder = pc[len(pattern):]
+        if remainder == "" or not remainder[0].isdigit():
             return True
     return False
 
 
 def is_truncating(consequence: str) -> bool:
-    """Check if variant consequence is truncating (LOF)."""
+    """Check if variant consequence is truncating (LOF).
+
+    Splits on comma, ampersand, or pipe to handle both MAF/Funcotator
+    (single terms) and VEP (& or |-delimited multi-term) annotations.
+    """
     if not consequence:
         return False
-    return any(c in TRUNCATING_CONSEQUENCES for c in consequence.split(","))
+    import re
+    terms = re.split(r'[,&|]', consequence)
+    return any(t.strip() in TRUNCATING_CONSEQUENCES for t in terms)
 
 
 def classify_chip(
@@ -266,15 +291,17 @@ def assign_slt_tier(
         return "SLT-A"
 
     # SLT-B: posterior ≥ 0.5 OR (evidence = high AND n_layers ≥ 3)
-    if p >= POSTERIOR_B:
-        return "SLT-B"
-    if evidence_level == "high" and n_somatic_layers >= 3:
-        return "SLT-B"
+    #         chip_likely variants are blocked from SLT-B (downgraded to SLT-C/D)
+    if cs != "chip_likely":
+        if p >= POSTERIOR_B:
+            return "SLT-B"
+        if evidence_level == "high" and n_somatic_layers >= 3:
+            return "SLT-B"
 
-    # SLT-C: posterior ≥ 0.2 OR evidence = medium
+    # SLT-C: posterior ≥ 0.2 OR evidence ∈ {high, medium}
     if p >= POSTERIOR_C:
         return "SLT-C"
-    if evidence_level == "medium":
+    if evidence_level in ("high", "medium"):
         return "SLT-C"
 
     # SLT-D: everything else
