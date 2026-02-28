@@ -181,9 +181,9 @@ Validated on the SEQC2 HCC1395 breast cancer truth set (455 variants in evaluati
 
 | Threshold | Sensitivity | PPV | F1 |
 |-----------|-------------|-----|-----|
-| >= SLT-A | 18.0% | 67.8% | 0.285 |
-| >= SLT-B | 22.4% | 59.3% | 0.325 |
-| >= SLT-C | 89.5% | 14.1% | 0.244 |
+| >= SLT-A | 18.0% | 78.1% | 0.293 |
+| >= SLT-B | 22.4% | 63.7% | 0.332 |
+| >= SLT-C | 89.5% | 16.8% | 0.283 |
 
 PureCN posterior AUROC: 0.777 (95% CI: 0.735-0.819).
 
