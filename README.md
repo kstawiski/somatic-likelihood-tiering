@@ -45,17 +45,39 @@ pip install -e ".[test]"
 pytest tests/ -v
 ```
 
-## Usage
+## Quick Start
 
-### Full mode (Mutect2 + PureCN)
+### From a MAF file (most common)
 
 ```bash
-python slt_classify.py --input annotated_variants.tsv --output slt_output.tsv
+# 1. Convert MAF to SLT input format
+python maf_to_slt_input.py --input somatic.maf --output slt_input.tsv
+
+# 2. Run SLT (degraded mode if no PureCN)
+python slt_classify.py --input slt_input.tsv --output classified.tsv --degraded
+
+# Or with PureCN posteriors for full mode:
+python maf_to_slt_input.py --input somatic.maf --purecn purecn_calls.csv --output slt_input.tsv
+python slt_classify.py --input slt_input.tsv --output classified.tsv
 ```
 
-### Degraded mode (MAF-level, no PureCN)
+### From a VCF file
 
 ```bash
+# 1. Convert annotated VCF to SLT input format
+python vcf_to_slt_input.py --input annotated.vcf.gz --output slt_input.tsv
+
+# 2. Run SLT
+python slt_classify.py --input slt_input.tsv --output classified.tsv
+```
+
+### Direct usage (pre-formatted TSV)
+
+```bash
+# Full mode (Mutect2 + PureCN)
+python slt_classify.py --input annotated_variants.tsv --output slt_output.tsv
+
+# Degraded mode (MAF-level, no PureCN)
 python slt_classify.py --input variants.maf --output slt_output.tsv --degraded
 ```
 
@@ -80,6 +102,137 @@ result = classify_variant(variant)
 print(result["slt_tier"])           # SLT-A
 print(result["slt_evidence_level"]) # high
 print(result["slt_chip_status"])    # no_chip
+```
+
+## Preparing Input from Common Formats
+
+SLT accepts a simple tab-separated input, but most variant callers produce VCF or MAF files. Two helper scripts are provided to convert these formats.
+
+### From MAF files (`maf_to_slt_input.py`)
+
+Converts standard MAF (Mutation Annotation Format) files to SLT input. Handles column naming conventions from Funcotator, Oncotator, maf2maf, and cBioPortal.
+
+```bash
+# Basic conversion (degraded mode — no PureCN)
+python maf_to_slt_input.py --input somatic.maf --output slt_input.tsv
+
+# With PureCN posteriors for full-mode SLT
+python maf_to_slt_input.py --input somatic.maf --purecn purecn_calls.csv --output slt_input.tsv
+```
+
+**Features:**
+- Auto-detects column names (Hugo_Symbol vs GENE vs gene, etc.)
+- Computes VAF from t_ref_count/t_alt_count if no direct VAF column
+- Merges PureCN posteriors, POPAF, and GERMQ by genomic coordinates
+- Extracts COSMIC counts from existing annotation fields
+
+### From VCF files (`vcf_to_slt_input.py`)
+
+Converts annotated VCF files (Funcotator or VEP) to SLT input. The VCF must be annotated before conversion — see [Reference Files](#reference-files-for-annotation) below.
+
+```bash
+# From Funcotator-annotated VCF
+python vcf_to_slt_input.py --input funcotator_annotated.vcf --output slt_input.tsv
+
+# From VEP-annotated VCF
+python vcf_to_slt_input.py --input vep_annotated.vcf.gz --output slt_input.tsv
+
+# With PureCN posteriors
+python vcf_to_slt_input.py --input annotated.vcf --purecn purecn_calls.csv --output slt_input.tsv
+
+# Specify sample (for multi-sample VCFs)
+python vcf_to_slt_input.py --input annotated.vcf --sample TUMOR --output slt_input.tsv
+```
+
+**Features:**
+- Parses Funcotator FUNCOTATION and VEP CSQ INFO fields
+- Extracts Mutect2 POPAF and GERMQ from INFO
+- Computes VAF from FORMAT/AD fields
+- Handles gzipped VCFs (.vcf.gz)
+
+## Reference Files for Annotation
+
+SLT itself has no reference file dependencies — it operates on pre-annotated TSV input. However, the upstream annotation pipeline requires several reference databases. Below is the recommended annotation workflow.
+
+### Required for Full Mode
+
+| Resource | Version | Purpose | Download |
+|----------|---------|---------|----------|
+| **Reference genome** | GRCh38 / hg38 | Alignment, variant calling | [GATK bundle](https://gatk.broadinstitute.org/hc/en-us/articles/360035890811) |
+| **Funcotator data sources** | v1.8 (hg38) | Gene annotation, gnomAD AF, COSMIC | `gatk FuncotatorDataSourceDownloader --germline --validate-integrity --extract-after-download` |
+| **gnomAD** | v4.1 exomes | Population allele frequencies (Layer 2) | [gnomAD downloads](https://gnomad.broadinstitute.org/downloads) |
+| **COSMIC** | v103+ | Somatic recurrence (Layer 4) | [COSMIC](https://cancer.sanger.ac.uk/cosmic/download) (registration required) |
+| **PureCN panel of normals** | Project-specific | Posterior somatic probability | Built from matched normals or unmatched panel |
+
+### Recommended Annotation Pipeline
+
+```bash
+# 1. Variant calling (Mutect2 tumor-only)
+gatk Mutect2 \
+    -R reference.fa \
+    -I tumor.bam \
+    --germline-resource af-only-gnomad.hg38.vcf.gz \
+    --panel-of-normals pon.vcf.gz \
+    -O raw.vcf.gz
+
+# 2. Filter variants
+gatk FilterMutectCalls \
+    -R reference.fa \
+    -V raw.vcf.gz \
+    --contamination-table contamination.table \
+    -O filtered.vcf.gz
+
+# 3. Annotate with Funcotator (provides gene, consequence, gnomAD, COSMIC)
+gatk Funcotator \
+    -R reference.fa \
+    -V filtered.vcf.gz \
+    --ref-version hg38 \
+    --data-sources-path funcotator_dataSources.v1.8.hg38.20230908s \
+    -O annotated.vcf \
+    --output-file-format VCF
+
+# 4. Run PureCN (provides posterior somatic probability)
+# See PureCN documentation: https://bioconductor.org/packages/PureCN/
+Rscript PureCN.R \
+    --sampleid SAMPLE \
+    --tumor filtered.vcf.gz \
+    --normaldb normalDB.rds \
+    --intervals targets_intervals.txt \
+    --genome hg38
+
+# 5. Convert to SLT input and classify
+python vcf_to_slt_input.py \
+    --input annotated.vcf \
+    --purecn PureCN_output/SAMPLE.csv \
+    --output slt_input.tsv
+
+python slt_classify.py --input slt_input.tsv --output slt_classified.tsv
+```
+
+### Degraded Mode (Minimal Requirements)
+
+For MAF-level reanalysis without BAM files, only gnomAD and COSMIC annotations are needed:
+
+| Resource | Purpose | SLT Layer |
+|----------|---------|-----------|
+| **gnomAD AF** | Population frequency filtering | Layer 2 |
+| **COSMIC** | Somatic recurrence database | Layer 4 |
+
+Layers 1 (POPAF) and 3 (GERMQ) require Mutect2 output and are disabled in degraded mode. PureCN posterior is unavailable. Maximum achievable tier is SLT-C.
+
+### Alternative Annotation with VEP
+
+```bash
+# Ensembl VEP (alternative to Funcotator)
+vep --input_file filtered.vcf.gz \
+    --output_file annotated.vcf \
+    --format vcf --vcf \
+    --assembly GRCh38 \
+    --cache --dir_cache /path/to/vep_cache \
+    --fasta reference.fa \
+    --everything --pick \
+    --plugin COSMIC,/path/to/CosmicCodingMuts.vcf.gz \
+    --custom gnomAD_exomes.vcf.gz,gnomADe,vcf,exact,0,AF
 ```
 
 ## Input Format
@@ -204,6 +357,8 @@ The test suite covers all evidence layers, CHIP classification, tier assignment 
 ```
 somatic-likelihood-tiering/
 ├── slt_classify.py          # Core classifier (standalone, no dependencies)
+├── maf_to_slt_input.py      # MAF → SLT input converter
+├── vcf_to_slt_input.py      # VCF → SLT input converter (Funcotator/VEP)
 ├── tests/
 │   └── test_slt_classify.py # Unit test suite (39+ tests)
 ├── examples/
