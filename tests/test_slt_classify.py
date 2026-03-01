@@ -246,8 +246,8 @@ class TestSltTier:
         assert assign_slt_tier(0.80, "medium", 2, "chip_possible") == "SLT-A"
 
     def test_slt_a_blocked_by_chip(self):
-        """SLT-A blocked by chip_likely → falls to SLT-B."""
-        assert assign_slt_tier(0.95, "high", 4, "chip_likely") == "SLT-B"
+        """SLT-A blocked by chip_likely → falls to SLT-C (blocks both A and B)."""
+        assert assign_slt_tier(0.95, "high", 4, "chip_likely") == "SLT-C"
 
     def test_slt_a_blocked_by_low_evidence(self):
         """SLT-A blocked by low evidence → falls to SLT-B (posterior >= 0.5)."""
@@ -403,7 +403,7 @@ class TestFullPipeline:
         }
         result = classify_variant(row)
         assert result["slt_chip_status"] == "chip_likely"
-        assert result["slt_tier"] == "SLT-B"  # downgraded from A due to CHIP
+        assert result["slt_tier"] == "SLT-C"  # chip_likely blocks both SLT-A and SLT-B
 
     def test_missing_all_fields(self):
         """Empty row → SLT-D with no evidence."""
