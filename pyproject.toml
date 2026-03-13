@@ -4,22 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "somatic-likelihood-tiering"
-version = "1.0.0"
-description = "SLT: Interpretable multi-evidence framework for somatic variant classification in tumor-only WES"
+version = "2.0.0"
+description = "SLT: Interpretable post-calling triage framework for somatic variant classification in tumor-only WES"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.7"
 authors = [
-    {name = "[Author Names]"},
+    {name = "Konrad Stawiski"},
+    {name = "Kent Mouw"},
 ]
 keywords = [
-    "somatic variant classification",
+    "somatic variant triage",
     "tumor-only sequencing",
     "whole-exome sequencing",
     "clonal hematopoiesis",
     "CHIP",
     "PureCN",
     "bioinformatics",
+    "post-calling",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -39,7 +41,7 @@ classifiers = [
 slt-classify = "slt_classify:main"
 
 [project.urls]
-Repository = "https://github.com/[owner]/somatic-likelihood-tiering"
+Repository = "https://github.com/kstawiski/somatic-likelihood-tiering"
 
 [project.optional-dependencies]
 test = ["pytest>=7.0"]

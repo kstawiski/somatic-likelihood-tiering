@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Somatic Likelihood Tiering (SLT) — 4-tier classification for tumor-only WES.
+"""Somatic Likelihood Tiering (SLT) — post-calling triage for tumor-only WES.
 
-Classifies somatic variants from tumor-only whole-exome sequencing using
-four complementary evidence layers (POPAF, gnomAD, GERMQ, COSMIC) and PureCN
-posterior somatic probabilities, with integrated CHIP detection.
+Classifies somatic variants from tumor-only whole-exome sequencing into four
+confidence tiers (SLT-A through SLT-D) using four complementary evidence layers
+(POPAF, gnomAD, GERMQ, COSMIC) and PureCN posterior somatic probabilities,
+with integrated CHIP detection.
 
-All thresholds frozen from development cohort. No post-hoc optimization.
+All thresholds convention-grounded and frozen. No post-hoc optimization.
 
 Usage:
     python slt_classify.py --input variants.tsv --output slt_tiers.tsv
-    python slt_classify.py --input mc3_annotated.maf --output mc3_slt.tsv --degraded
+    python slt_classify.py --input mc3_annotated.maf --output mc3_slt.tsv --annotation-only
 """
 
 import argparse
@@ -362,7 +363,7 @@ def classify_variant(row: dict, degraded: bool = False) -> dict:
     result["slt_chip_status"] = chip
     result["slt_posterior_used"] = posterior if posterior is not None else "NA"
     result["slt_tier"] = tier
-    result["slt_mode"] = "degraded" if degraded else "full"
+    result["slt_mode"] = "annotation_only" if degraded else "full"
 
     return result
 
@@ -408,7 +409,7 @@ def process_file(input_path: str, output_path: str, degraded: bool = False):
                 tier_counts[c["slt_tier"]] = tier_counts.get(c["slt_tier"], 0) + 1
 
     # Summary
-    mode_label = "DEGRADED (no PureCN, 2/4 layers)" if degraded else "FULL (4 layers)"
+    mode_label = "ANNOTATION-ONLY (no PureCN, 2/4 layers)" if degraded else "FULL (4 layers)"
     print(f"SLT Classification Complete [{mode_label}]")
     print(f"  Total variants: {n}")
     for tier in ["SLT-A", "SLT-B", "SLT-C", "SLT-D"]:
@@ -425,11 +426,12 @@ def main():
     )
     parser.add_argument("--input", "-i", required=True, help="Input TSV/MAF file")
     parser.add_argument("--output", "-o", required=True, help="Output TSV with SLT tiers")
-    parser.add_argument("--degraded", action="store_true",
-                        help="Degraded mode: no PureCN posterior, no POPAF/GERMQ (MAF-level)")
+    parser.add_argument("--annotation-only", "--degraded", action="store_true",
+                        dest="annotation_only",
+                        help="Annotation-only mode: no PureCN posterior, no POPAF/GERMQ (MAF-level)")
     args = parser.parse_args()
 
-    process_file(args.input, args.output, args.degraded)
+    process_file(args.input, args.output, args.annotation_only)
 
 
 if __name__ == "__main__":

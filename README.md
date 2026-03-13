@@ -1,6 +1,6 @@
 # Somatic Likelihood Tiering (SLT)
 
-An interpretable, multi-evidence framework for somatic variant classification in tumor-only whole-exome sequencing (WES).
+An interpretable, open-source post-calling triage framework for somatic variant classification in tumor-only whole-exome sequencing (WES).
 
 ## Overview
 
@@ -10,16 +10,16 @@ SLT classifies variants from tumor-only WES into four confidence tiers (SLT-A th
 - **PureCN posterior somatic probabilities**: Bayesian posterior from copy number-aware classification
 - **Integrated CHIP detection**: Clonal hematopoiesis of indeterminate potential flagging with curated gene lists
 
-All thresholds are deterministic, frozen from an independent development cohort, and fully auditable.
+All thresholds are deterministic, convention-grounded, frozen, and fully auditable.
 
 ## Key Features
 
 - **Zero dependencies**: Core classifier uses only the Python standard library (Python 3.7+)
 - **Interpretable**: Every tier assignment is traceable to specific evidence layers
-- **Graduated confidence**: Four tiers for different downstream applications (clinical, discovery, screening)
+- **Graduated confidence**: Four tiers for different downstream applications (clinical reporting, discovery, screening)
 - **CHIP-aware**: Integrated clonal hematopoiesis detection prevents false somatic calls from blood-derived variants
 - **Caller-agnostic**: Works with Mutect2, VarDict, or any TSV/MAF-producing pipeline
-- **Degraded mode**: Operates with reduced layers when PureCN or Mutect2 annotations are unavailable
+- **Annotation-only mode**: Operates with public databases only (gnomAD + COSMIC) when PureCN or BAM-level annotations are unavailable
 
 ## Installation
 
@@ -53,8 +53,8 @@ pytest tests/ -v
 # 1. Convert MAF to SLT input format
 python maf_to_slt_input.py --input somatic.maf --output slt_input.tsv
 
-# 2. Run SLT (degraded mode if no PureCN)
-python slt_classify.py --input slt_input.tsv --output classified.tsv --degraded
+# 2. Run SLT (annotation-only mode if no PureCN)
+python slt_classify.py --input slt_input.tsv --output classified.tsv --annotation-only
 
 # Or with PureCN posteriors for full mode:
 python maf_to_slt_input.py --input somatic.maf --purecn purecn_calls.csv --output slt_input.tsv
@@ -77,8 +77,8 @@ python slt_classify.py --input slt_input.tsv --output classified.tsv
 # Full mode (Mutect2 + PureCN)
 python slt_classify.py --input annotated_variants.tsv --output slt_output.tsv
 
-# Degraded mode (MAF-level, no PureCN)
-python slt_classify.py --input variants.maf --output slt_output.tsv --degraded
+# Annotation-only mode (MAF-level, no PureCN)
+python slt_classify.py --input variants.maf --output slt_output.tsv --annotation-only
 ```
 
 ### Python API
@@ -113,7 +113,7 @@ SLT accepts a simple tab-separated input, but most variant callers produce VCF o
 Converts standard MAF (Mutation Annotation Format) files to SLT input. Handles column naming conventions from Funcotator, Oncotator, maf2maf, and cBioPortal.
 
 ```bash
-# Basic conversion (degraded mode — no PureCN)
+# Basic conversion (annotation-only mode — no PureCN)
 python maf_to_slt_input.py --input somatic.maf --output slt_input.tsv
 
 # With PureCN posteriors for full-mode SLT
@@ -164,6 +164,14 @@ SLT itself has no reference file dependencies — it operates on pre-annotated T
 | **COSMIC** | v103+ | Somatic recurrence (Layer 4) | [COSMIC](https://cancer.sanger.ac.uk/cosmic/download) (registration required) |
 | **PureCN panel of normals** | Project-specific | Posterior somatic probability | Built from matched normals or unmatched panel |
 
+### Deployment Guidelines
+
+| Setting | Recommended Mode | Maximum Tier | Notes |
+|---------|-----------------|--------------|-------|
+| Process-matched NormalDB available | Full SLT | SLT-A | Best performance; requires BAM files + matched normals |
+| No NormalDB / no BAM access | Annotation-only | SLT-C | Uses only gnomAD + COSMIC; `--annotation-only` flag |
+| Matched normal tissue available | Paired T/N analysis | N/A | Preferred over any tumor-only approach |
+
 ### Recommended Annotation Pipeline
 
 ```bash
@@ -209,7 +217,7 @@ python vcf_to_slt_input.py \
 python slt_classify.py --input slt_input.tsv --output slt_classified.tsv
 ```
 
-### Degraded Mode (Minimal Requirements)
+### Annotation-Only Mode (Minimal Requirements)
 
 For MAF-level reanalysis without BAM files, only gnomAD and COSMIC annotations are needed:
 
@@ -218,7 +226,7 @@ For MAF-level reanalysis without BAM files, only gnomAD and COSMIC annotations a
 | **gnomAD AF** | Population frequency filtering | Layer 2 |
 | **COSMIC** | Somatic recurrence database | Layer 4 |
 
-Layers 1 (POPAF) and 3 (GERMQ) require Mutect2 output and are disabled in degraded mode. PureCN posterior is unavailable. Maximum achievable tier is SLT-C.
+Layers 1 (POPAF) and 3 (GERMQ) require Mutect2 BAM-level output and are disabled in annotation-only mode. PureCN posterior is unavailable. Maximum achievable tier is SLT-C.
 
 ### Alternative Annotation with VEP
 
@@ -271,7 +279,7 @@ The classifier appends 10 columns to each input row:
 | `slt_chip_status` | str | chip_likely / chip_possible / no_chip |
 | `slt_posterior_used` | float | PureCN posterior (or "NA") |
 | `slt_tier` | str | SLT-A / SLT-B / SLT-C / SLT-D |
-| `slt_mode` | str | full / degraded |
+| `slt_mode` | str | full / annotation_only |
 
 ## Tier Definitions
 
@@ -285,6 +293,16 @@ Conditions are evaluated in order; the first match determines the tier:
 | **SLT-B** | Likely somatic | Posterior >= 0.5, OR (high evidence AND >= 3 layers); chip_likely blocked |
 | **SLT-C** | Possible somatic | Posterior >= 0.2, OR evidence in {high, medium} |
 | **SLT-D** | Unlikely somatic | All remaining variants |
+
+### Clinical Workflow
+
+| Tier | Recommended Action |
+|------|-------------------|
+| **SLT-A** | Report as somatic; include in TMB; prioritize for targeted therapy matching |
+| **SLT-B** | Report with annotation; manual review recommended; consider orthogonal confirmation for treatment-critical variants |
+| **SLT-C** | Include in discovery analyses; flag for extended review if clinically relevant gene |
+| **SLT-D** | Deprioritize; do not include in TMB |
+| **CHIP-likely** | Separate reporting; flag for hematology follow-up if clinically indicated |
 
 ### Evidence Levels
 
@@ -301,9 +319,9 @@ Variants in CHIP-associated genes are evaluated for clonal hematopoiesis:
 - **Tier 1 genes** (13 canonical CHIP drivers): DNMT3A, TET2, ASXL1, PPM1D, JAK2, SF3B1, SRSF2, U2AF1, IDH1, IDH2, ZBTB33, GNB1, CBL
 - **Tier 2 genes** (28 extended): TP53, KRAS, NRAS, FLT3, KIT, NPM1, and others
 
-`chip_likely` status blocks both SLT-A and SLT-B assignment, preventing CHIP variants from reaching the most actionable tiers. `chip_likely` variants are downgraded to SLT-C (maximum) or SLT-D.
+`chip_likely` status blocks both SLT-A and SLT-B assignment, preventing CHIP variants from reaching the most actionable tiers. `chip_likely` variants are downgraded to SLT-C (maximum) or SLT-D. Tier 2 genes (including TP53, KRAS, NRAS) receive `chip_possible` annotation but are NOT blocked from SLT-A/B.
 
-### Degraded Mode
+### Annotation-Only Mode
 
 When PureCN is unavailable (e.g., MAF-level reanalysis without BAM files):
 
@@ -312,33 +330,35 @@ When PureCN is unavailable (e.g., MAF-level reanalysis without BAM files):
 - Maximum achievable tier is SLT-C
 - SLT-A and SLT-B are unreachable
 
+Use the `--annotation-only` flag (or `--degraded` for backward compatibility).
+
 ## Thresholds
 
-All thresholds are frozen and deterministic:
+All thresholds are convention-grounded, frozen, and deterministic:
 
 | Parameter | Value | Source |
 |-----------|-------|--------|
 | Posterior SLT-A gate | >= 0.8 | PureCN recommended (Riester et al., 2016) |
 | Posterior SLT-B gate | >= 0.5 | PureCN recommended |
 | Posterior SLT-C gate | >= 0.2 | PureCN recommended |
-| POPAF threshold | >= 5.0 | Development cohort |
-| gnomAD AF threshold | < 0.001 | Development cohort |
-| GERMQ threshold | >= 30 | Development cohort |
-| COSMIC confirmed min | >= 5 | Development cohort |
-| COSMIC hotspot min | >= 10 | Development cohort |
-| CGC + COSMIC sample min | >= 2 | Development cohort |
+| POPAF threshold | >= 5.0 | Mutect2 standard (AF <= 1e-5) |
+| gnomAD AF threshold | < 0.001 | ACMG/AMP BA1/BS1 aligned |
+| GERMQ threshold | >= 30 | Mutect2 standard (<=0.1% germline probability) |
+| COSMIC confirmed min | >= 5 | Conservative recurrence threshold |
+| COSMIC hotspot min | >= 10 | Conservative recurrence threshold |
+| CGC + COSMIC sample min | >= 2 | Conservative recurrence threshold |
 
 ## Benchmark Performance (SEQC2 HCC1395)
 
 Validated on the SEQC2 HCC1395 breast cancer truth set (455 variants in evaluation regions), processed in tumor-only mode:
 
-| Threshold | Sensitivity | PPV | F1 |
-|-----------|-------------|-----|-----|
-| >= SLT-A | 18.0% | 78.1% | 0.293 |
-| >= SLT-B | 22.4% | 63.7% | 0.332 |
-| >= SLT-C | 89.5% | 16.8% | 0.283 |
+| Threshold | Called | TP | FP | Sensitivity | PPV | F1 | NNR |
+|-----------|-------|----|----|-------------|-----|-----|-----|
+| >= SLT-A | 105 | 82 | 23 | 18.0% | 78.1% | 0.293 | 1.28 |
+| >= SLT-B | 160 | 102 | 58 | 22.4% | 63.7% | 0.332 | 1.57 |
+| >= SLT-C | 2,423 | 422 | 2,001 | 92.7% | 17.4% | 0.293 | 5.74 |
 
-PureCN posterior AUROC: 0.777 (95% CI: 0.735-0.819).
+PureCN posterior AUROC: 0.777 (95% CI: 0.735-0.819). 100% CGC driver retention at SLT-C. Evidence layers rescued 77.3% of true positives lacking PureCN support.
 
 ## Tests
 
@@ -350,7 +370,7 @@ pip install pytest
 pytest tests/ -v
 ```
 
-The test suite covers all evidence layers, CHIP classification, tier assignment cascade, degraded mode, boundary conditions, and integration tests.
+The test suite covers all evidence layers, CHIP classification, tier assignment cascade, annotation-only mode, boundary conditions, and integration tests.
 
 ## Repository Structure
 
@@ -375,7 +395,7 @@ somatic-likelihood-tiering/
 
 If you use SLT in your research, please cite:
 
-> [Author Names]. Somatic Likelihood Tiering: An Interpretable Multi-Evidence Framework for Somatic Variant Classification in Tumor-Only Whole-Exome Sequencing. *[Journal]*, 2026.
+> Stawiski K, Kamran SC, De Carvalho FLF, Mouw KW. Somatic Likelihood Tiering (SLT): an interpretable post-calling triage framework for tumor-only whole-exome sequencing. *BMC Bioinformatics* (submitted), 2026.
 
 ## License
 

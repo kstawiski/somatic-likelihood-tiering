@@ -303,7 +303,7 @@ class TestDegradedMode:
         assert result["slt_layer1_popaf"] is False  # disabled
         assert result["slt_layer3_germq"] is False  # disabled
         assert result["slt_posterior_used"] == "NA"
-        assert result["slt_mode"] == "degraded"
+        assert result["slt_mode"] == "annotation_only"
 
     def test_degraded_keeps_gnomad_cosmic(self):
         """Degraded mode: layers 2 and 4 still active."""
