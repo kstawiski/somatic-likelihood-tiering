@@ -348,7 +348,9 @@ All thresholds are convention-grounded, frozen, and deterministic:
 | COSMIC hotspot min | >= 10 | Conservative recurrence threshold |
 | CGC + COSMIC sample min | >= 2 | Conservative recurrence threshold |
 
-## Benchmark Performance (SEQC2 HCC1395)
+## Benchmark Performance
+
+### SEQC2 HCC1395 (primary benchmark)
 
 Validated on the SEQC2 HCC1395 breast cancer truth set (455 variants in evaluation regions), processed in tumor-only mode:
 
@@ -358,7 +360,27 @@ Validated on the SEQC2 HCC1395 breast cancer truth set (455 variants in evaluati
 | >= SLT-B | 160 | 102 | 58 | 22.4% | 63.7% | 0.332 | 1.57 |
 | >= SLT-C | 2,423 | 422 | 2,001 | 92.7% | 17.4% | 0.293 | 5.74 |
 
-PureCN posterior AUROC: 0.777 (95% CI: 0.735-0.819). 100% CGC driver retention at SLT-C. Evidence layers rescued 77.3% of true positives lacking PureCN support.
+PureCN posterior AUROC: 0.775 (95% CI: 0.732-0.817). 100% CGC driver retention at SLT-C. Evidence layers rescued 77.3% of true positives lacking PureCN support.
+
+### External validation (BostonGene cell lines)
+
+| Sample | Tumor type | Truth (n) | SLT >=C Sensitivity | SLT >=C PPV | SLT-attributable FN |
+|--------|-----------|-----------|---------------------|-------------|---------------------|
+| COLO829 | Melanoma | 357 | 87.1% | 5.1% | 2 (0.6%) |
+| NCI-H1770 | NSCLC | 1,042 | 81.9% | 7.9% | 23 (2.2%) |
+
+### Clinical validation (HdM-BLCA-1 bladder cancer)
+
+Validated on 22 FFPE metastatic urothelial carcinoma patients (Boll et al. 2023, *Sci Rep*; EGA: EGAS00001007086). Reference standard: matched tumor-normal Mutect2 PASS variants (TLOD >= 20, VAF >= 5%).
+
+| Threshold | Sensitivity [95% CI] | PPV | NNR |
+|-----------|---------------------|-----|-----|
+| >= SLT-A | 0.09% [0.01-0.24%] | 0.07% | 1,411 |
+| >= SLT-B | 0.50% [0.34-0.72%] | 0.30% | 336 |
+| >= SLT-C | 60.0% [51.7-69.6%] | 0.69% | 145 |
+| All tiers | 94.4% [88.7-98.6%] | 0.63% | 158 |
+
+All-tier sensitivity (94.4%) matches the SEQC2 cell-line benchmark (94.5%), confirming that the evidence-layer architecture generalizes to clinical FFPE samples. SLT-A/B precision tiers showed limited PureCN posterior coverage on FFPE (<5% of variants), establishing a deployment boundary for FFPE workflows. Per-patient SLT-C sensitivity: median 69.7% (IQR 58.7-74.6%).
 
 ## Tests
 
@@ -395,7 +417,7 @@ somatic-likelihood-tiering/
 
 If you use SLT in your research, please cite:
 
-> Stawiski K, Kamran SC, De Carvalho FLF, Mouw KW. Somatic Likelihood Tiering (SLT): an interpretable post-calling triage framework for tumor-only whole-exome sequencing. *BMC Bioinformatics* (submitted), 2026.
+> Stawiski K, Kamran SC, De Carvalho FLF, Mouw KW. Somatic Likelihood Tiering (SLT): an interpretable post-calling triage framework for tumor-only whole-exome sequencing. *BMC Bioinformatics* (under review), 2026.
 
 ## License
 
