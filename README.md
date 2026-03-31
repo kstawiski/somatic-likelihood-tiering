@@ -371,16 +371,18 @@ PureCN posterior AUROC: 0.775 (95% CI: 0.732-0.817). 100% CGC driver retention a
 
 ### Clinical validation (HdM-BLCA-1 bladder cancer)
 
-Validated on 22 FFPE metastatic urothelial carcinoma patients (Boll et al. 2023, *Sci Rep*; EGA: EGAS00001007086). Reference standard: matched tumor-normal Mutect2 PASS variants (TLOD >= 20, VAF >= 5%).
+Validated on 27 FFPE metastatic urothelial carcinoma patients (Boll et al. 2023, *Sci Rep*; EGA: EGAS00001007086). Reference standard: matched tumor-normal Mutect2 PASS variants (TLOD >= 20, VAF >= 5%). PureCN v2.12.0 with FFPE-adapted min.base.quality = 20.
 
 | Threshold | Sensitivity [95% CI] | PPV | NNR |
 |-----------|---------------------|-----|-----|
-| >= SLT-A | 0.09% [0.01-0.24%] | 0.07% | 1,411 |
-| >= SLT-B | 0.50% [0.34-0.72%] | 0.30% | 336 |
-| >= SLT-C | 60.0% [51.7-69.6%] | 0.69% | 145 |
-| All tiers | 94.4% [88.7-98.6%] | 0.63% | 158 |
+| >= SLT-A | 18.2% [17.7-18.7%] | 6.8% | 14.6 |
+| >= SLT-B | 31.8% [31.2-32.4%] | 4.8% | 20.9 |
+| >= SLT-C | 72.3% [71.7-72.9%] | 0.65% | 152.8 |
+| All tiers | 92.2% [91.9-92.5%] | 0.51% | 194.3 |
 
-All-tier sensitivity (94.4%) matches the SEQC2 cell-line benchmark (94.5%), confirming that the evidence-layer architecture generalizes to clinical FFPE samples. SLT-A/B precision tiers showed limited PureCN posterior coverage on FFPE (<5% of variants), establishing a deployment boundary for FFPE workflows. Per-patient SLT-C sensitivity: median 69.7% (IQR 58.7-74.6%).
+SLT-A sensitivity on FFPE clinical material (18.2%) matches the SEQC2 cell-line benchmark (18.0%). SLT-B (31.8%) exceeds it (22.4%). The full SLT tier cascade generalizes to clinical FFPE samples when PureCN's base-quality threshold is adapted from the default 25 to 20. Without this adaptation, the default threshold silently removes >95% of FFPE-quality variants before posterior estimation, rendering the precision tiers nonfunctional.
+
+**FFPE deployment note:** Set PureCN `--min-base-quality 20` (or lower) for FFPE samples. SLT-A/B precision tiers require PureCN purity >= ~0.25.
 
 ## Tests
 
