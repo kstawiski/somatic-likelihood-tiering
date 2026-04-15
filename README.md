@@ -415,11 +415,6 @@ somatic-likelihood-tiering/
 └── README.md                # This file
 ```
 
-## Citation
-
-If you use SLT in your research, please cite:
-
-> Stawiski K, Kamran SC, De Carvalho FLF, Mouw KW. Somatic Likelihood Tiering (SLT): an interpretable post-calling triage framework for tumor-only whole-exome sequencing. *BMC Bioinformatics* (under review), 2026.
 
 ## License
 
