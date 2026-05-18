@@ -1,10 +1,10 @@
 # Somatic Likelihood Tiering (SLT)
 
-An interpretable, open-source post-calling triage framework for somatic variant classification in tumor-only whole-exome sequencing (WES).
+An interpretable, open-source post-calling triage framework for review-prioritizing tumor-only whole-exome sequencing (WES) variants.
 
 ## Overview
 
-SLT classifies variants from tumor-only WES into four confidence tiers (SLT-A through SLT-D) using:
+SLT ranks tumor-only WES variants into four review-priority tiers (SLT-A through SLT-D) using:
 
 - **Four complementary evidence layers**: population allele frequency (POPAF), gnomAD annotation, germline quality (GERMQ), and COSMIC recurrence
 - **PureCN posterior somatic probabilities**: Bayesian posterior from copy number-aware classification
@@ -16,8 +16,8 @@ All thresholds are deterministic, convention-grounded, frozen, and fully auditab
 
 - **Zero dependencies**: Core classifier uses only the Python standard library (Python 3.7+)
 - **Interpretable**: Every tier assignment is traceable to specific evidence layers
-- **Graduated confidence**: Four tiers for different downstream applications (clinical reporting, discovery, screening)
-- **CHIP-aware**: Integrated clonal hematopoiesis detection prevents false somatic calls from blood-derived variants
+- **Graduated triage**: Four tiers for auditable manual review, sensitivity-preserving screening, and exploratory analysis
+- **CHIP-aware**: Integrated clonal hematopoiesis detection prevents blood-derived variants from being promoted into the highest review-priority tiers
 - **Caller-agnostic**: Works with Mutect2, VarDict, or any TSV/MAF-producing pipeline
 - **Annotation-only mode**: Operates with public databases only (gnomAD + COSMIC) when PureCN or BAM-level annotations are unavailable
 
@@ -283,26 +283,30 @@ The classifier appends 10 columns to each input row:
 
 ## Tier Definitions
 
-### Classification Cascade
+### Review-Priority Cascade
 
 Conditions are evaluated in order; the first match determines the tier:
 
 | Tier | Meaning | Conditions |
 |------|---------|------------|
-| **SLT-A** | High confidence somatic | Posterior >= 0.8 AND evidence in {high, medium} AND not chip_likely |
-| **SLT-B** | Likely somatic | Posterior >= 0.5, OR (high evidence AND >= 3 layers); chip_likely blocked |
-| **SLT-C** | Possible somatic | Posterior >= 0.2, OR evidence in {high, medium} |
-| **SLT-D** | Unlikely somatic | All remaining variants |
+| **SLT-A** | Highest review priority | Posterior >= 0.8 AND evidence in {high, medium} AND not chip_likely |
+| **SLT-B** | Second review priority | Posterior >= 0.5, OR (high evidence AND >= 3 layers); chip_likely blocked |
+| **SLT-C** | Sensitivity-preserving review tier | Posterior >= 0.2, OR evidence in {high, medium} |
+| **SLT-D** | Lowest review priority | All remaining variants |
 
-### Clinical Workflow
+### Clinical Workflow Safety Note
+
+SLT is a triage queue for tumor-only review. It does not replace matched-normal sequencing, orthogonal confirmation, germline-risk workflows, tumor board adjudication, or a validated somatic caller. Do not use an SLT tier alone to report somatic status, include a variant in tumor mutational burden, or select targeted therapy.
+
+### Suggested Review Use
 
 | Tier | Recommended Action |
 |------|-------------------|
-| **SLT-A** | Report as somatic; include in TMB; prioritize for targeted therapy matching |
-| **SLT-B** | Report with annotation; manual review recommended; consider orthogonal confirmation for treatment-critical variants |
-| **SLT-C** | Include in discovery analyses; flag for extended review if clinically relevant gene |
-| **SLT-D** | Deprioritize; do not include in TMB |
-| **CHIP-likely** | Separate reporting; flag for hematology follow-up if clinically indicated |
+| **SLT-A** | Review first; require matched-normal, orthogonal, or expert adjudication before clinical reporting or TMB use |
+| **SLT-B** | Review after SLT-A; prioritize clinically relevant genes for confirmation |
+| **SLT-C** | Preserve for sensitivity-focused screening and extended review when clinically relevant |
+| **SLT-D** | Lowest-priority queue; revisit only for specific clinical or research hypotheses |
+| **CHIP-likely** | Treat as a safety flag; route through hematology/germline-aware review when clinically indicated |
 
 ### Evidence Levels
 
@@ -319,7 +323,7 @@ Variants in CHIP-associated genes are evaluated for clonal hematopoiesis:
 - **Tier 1 genes** (13 canonical CHIP drivers): DNMT3A, TET2, ASXL1, PPM1D, JAK2, SF3B1, SRSF2, U2AF1, IDH1, IDH2, ZBTB33, GNB1, CBL
 - **Tier 2 genes** (28 extended): TP53, KRAS, NRAS, FLT3, KIT, NPM1, and others
 
-`chip_likely` status blocks both SLT-A and SLT-B assignment, preventing CHIP variants from reaching the most actionable tiers. `chip_likely` variants are downgraded to SLT-C (maximum) or SLT-D. Tier 2 genes (including TP53, KRAS, NRAS) receive `chip_possible` annotation but are NOT blocked from SLT-A/B.
+`chip_likely` status blocks both SLT-A and SLT-B assignment, preventing CHIP-context variants from reaching the highest review-priority tiers. `chip_likely` variants are assigned to SLT-C (maximum) or SLT-D. Tier 2 genes (including TP53, KRAS, NRAS) receive `chip_possible` annotation but are NOT blocked from SLT-A/B.
 
 ### Annotation-Only Mode
 
