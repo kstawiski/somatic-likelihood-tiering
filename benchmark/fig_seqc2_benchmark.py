@@ -107,7 +107,7 @@ def parse_eval_summary(path):
                 summary["n_truth"] = int(line.split(":")[1].strip())
             elif line.startswith("Truth SNVs in eval regions:"):
                 summary["n_truth_snv"] = int(line.split(":")[1].strip())
-            # Parse metric rows like: ≥SLT-A    121    82    39    373    0.1802  ...
+            # Parse cumulative metric rows from evaluate_seqc2.py output.
             for prefix in CUM_LABELS:
                 if line.startswith(prefix) or line.startswith(prefix.replace("≥", ">=")):
                     parts = line.split()

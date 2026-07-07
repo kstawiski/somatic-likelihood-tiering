@@ -56,6 +56,10 @@ SLT_COLUMNS = [
     "POPAF",
     "GERMQ",
     "gnomAD_AF",
+    "gnomAD_AN",
+    "gnomAD_state",
+    "gnomAD_callable",
+    "gnomAD_evaluable",
     "COSMIC_CONFIRMED_SOMATIC",
     "COSMIC_HOTSPOT",
     "COSMIC_SAMPLE",
@@ -153,6 +157,15 @@ def compute_vaf_from_ad(format_str: str, sample_str: str) -> Optional[str]:
     if af:
         return af
     return None
+
+
+def first_info_value(info: dict, keys: List[str]) -> str:
+    """Return the first non-empty INFO value for any key."""
+    for key in keys:
+        value = info.get(key)
+        if value not in (None, "", ".", "NA", "nan"):
+            return str(value)
+    return ""
 
 
 def load_purecn(purecn_path: str) -> Dict[str, dict]:
@@ -297,6 +310,19 @@ def main():
                 out["POPAF"] = str(info["POPAF"])
             if "GERMQ" in info:
                 out["GERMQ"] = str(info["GERMQ"])
+            out["gnomAD_AF"] = first_info_value(
+                info, ["gnomAD_AF", "gnomAD_exome_AF", "gnomADe_AF"]
+            )
+            out["gnomAD_AN"] = first_info_value(
+                info, ["gnomAD_AN", "gnomAD_exome_AN", "gnomADe_AN"]
+            )
+            out["gnomAD_state"] = first_info_value(info, ["gnomAD_state", "gnomad_state"])
+            out["gnomAD_callable"] = first_info_value(
+                info, ["gnomAD_callable", "gnomad_callable"]
+            )
+            out["gnomAD_evaluable"] = first_info_value(
+                info, ["gnomAD_evaluable", "gnomad_evaluable"]
+            )
 
             # Extract annotation
             if has_funcotator and "FUNCOTATION" in info:
@@ -310,6 +336,9 @@ def main():
                 gnomad_val = func.get("gnomAD_exome_AF", "") or func.get("gnomAD_AF", "")
                 if gnomad_val:
                     out["gnomAD_AF"] = gnomad_val
+                gnomad_an = func.get("gnomAD_exome_AN", "") or func.get("gnomAD_AN", "")
+                if gnomad_an:
+                    out["gnomAD_AN"] = gnomad_an
                 # COSMIC
                 cosmic_val = func.get("COSMIC_overlapping_mutations", "")
                 if cosmic_val:
@@ -328,6 +357,9 @@ def main():
                 gnomad_val = csq.get("gnomADe_AF", "") or csq.get("gnomAD_AF", "")
                 if gnomad_val:
                     out["gnomAD_AF"] = gnomad_val
+                gnomad_an = csq.get("gnomADe_AN", "") or csq.get("gnomAD_AN", "")
+                if gnomad_an:
+                    out["gnomAD_AN"] = gnomad_an
                 # COSMIC from VEP
                 existing = csq.get("Existing_variation", "")
                 if existing and "COSV" in existing:

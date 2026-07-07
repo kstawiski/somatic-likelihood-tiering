@@ -1,0 +1,46 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Somatic Likelihood Tiering (SLT)"
+type: software
+version: 2.1.0
+date-released: 2026-07-07
+license: MIT
+url: "https://github.com/kstawiski/somatic-likelihood-tiering"
+repository-code: "https://github.com/kstawiski/somatic-likelihood-tiering"
+abstract: >-
+  Somatic Likelihood Tiering (SLT) is a deterministic, callability-aware
+  post-calling triage protocol for tumor-only whole-exome variant review.
+  Version 2.1.0 implements the R1 gnomAD three-state Layer 2 contract,
+  annotation-only six-cell routing, PureCN posterior preflight checks, and
+  CHIP safety flagging used in the revised BIB submission package.
+keywords:
+  - somatic variant triage
+  - tumor-only sequencing
+  - whole-exome sequencing
+  - gnomAD
+  - callability
+  - clonal hematopoiesis
+  - PureCN
+authors:
+  - family-names: Stawiski
+    given-names: Konrad
+    orcid: "https://orcid.org/0000-0002-1667-3449"
+    affiliation: "Dana-Farber Cancer Institute; Medical University of Lodz; Brigham and Women's Hospital"
+  - family-names: Kamran
+    given-names: Sophia C.
+    affiliation: "Mass General Brigham; Brigham and Women's Hospital"
+  - family-names: Perera-Bel
+    given-names: Julia
+    affiliation: "PSMAR Hospital del Mar Medical Research Institute (IMIM), Barcelona"
+  - family-names: Lee
+    given-names: Jihyun
+    affiliation: "Brigham and Women's Hospital"
+  - family-names: Bellmunt
+    given-names: Joaquim
+    affiliation: "PSMAR Hospital del Mar Medical Research Institute (IMIM), Barcelona; Harvard Medical School; Dana-Farber Cancer Institute"
+  - family-names: Mouw
+    given-names: Kent W.
+    affiliation: "Dana-Farber Cancer Institute; Harvard Medical School"
+  - family-names: De Carvalho
+    given-names: Filipe L. F.
+    affiliation: "Brigham and Women's Hospital; Harvard Medical School"

@@ -2,11 +2,13 @@
 
 An interpretable, open-source post-calling triage framework for review-prioritizing tumor-only whole-exome sequencing (WES) variants.
 
+Current release: **v2.1.0**, aligned with the BIB R1 callability-aware SLT protocol.
+
 ## Overview
 
 SLT ranks tumor-only WES variants into four review-priority tiers (SLT-A through SLT-D) using:
 
-- **Four complementary evidence layers**: population allele frequency (POPAF), gnomAD annotation, germline quality (GERMQ), and COSMIC recurrence
+- **Four complementary evidence layers**: population allele frequency (POPAF), callability-aware gnomAD rarity, germline quality (GERMQ), and COSMIC recurrence
 - **PureCN posterior somatic probabilities**: Bayesian posterior from copy number-aware classification
 - **Integrated CHIP detection**: Clonal hematopoiesis of indeterminate potential flagging with curated gene lists
 
@@ -16,10 +18,11 @@ All thresholds are deterministic, convention-grounded, frozen, and fully auditab
 
 - **Zero dependencies**: Core classifier uses only the Python standard library (Python 3.7+)
 - **Interpretable**: Every tier assignment is traceable to specific evidence layers
-- **Graduated triage**: Four tiers for auditable manual review, sensitivity-preserving screening, and exploratory analysis
+- **Graduated triage**: SLT-A/B high-priority SNV-calibrated queues, SLT-C conservative catchment, and SLT-D lowest-priority review
 - **CHIP-aware**: Integrated clonal hematopoiesis detection prevents blood-derived variants from being promoted into the highest review-priority tiers
 - **Caller-agnostic**: Works with Mutect2, VarDict, or any TSV/MAF-producing pipeline
-- **Annotation-only mode**: Operates with public databases only (gnomAD + COSMIC) when PureCN or BAM-level annotations are unavailable
+- **Callability-aware gnomAD**: missing or allele-unmatched gnomAD evidence is `unevaluable`, not rarity-positive
+- **Annotation-only mode**: Operates with gnomAD state + COSMIC when PureCN or BAM-level annotations are unavailable; only common/COSMIC-negative variants route to SLT-D
 
 ## Installation
 
@@ -90,6 +93,7 @@ variant = {
     "POSTERIOR.SOMATIC": "0.95",
     "POPAF": "40",
     "gnomAD_AF": "0.00001",
+    "gnomAD_AN": "20000",
     "GERMQ": "50",
     "COSMIC_CONFIRMED_SOMATIC": "20",
     "Hugo_Symbol": "FGFR3",
@@ -219,14 +223,14 @@ python slt_classify.py --input slt_input.tsv --output slt_classified.tsv
 
 ### Annotation-Only Mode (Minimal Requirements)
 
-For MAF-level reanalysis without BAM files, only gnomAD and COSMIC annotations are needed:
+For MAF-level reanalysis without BAM files, gnomAD evaluability/state and COSMIC annotations are needed:
 
 | Resource | Purpose | SLT Layer |
 |----------|---------|-----------|
-| **gnomAD AF** | Population frequency filtering | Layer 2 |
+| **gnomAD AF/AN or state** | Population frequency plus evaluability | Layer 2 |
 | **COSMIC** | Somatic recurrence database | Layer 4 |
 
-Layers 1 (POPAF) and 3 (GERMQ) require Mutect2 BAM-level output and are disabled in annotation-only mode. PureCN posterior is unavailable. Maximum achievable tier is SLT-C.
+Layers 1 (POPAF) and 3 (GERMQ) require Mutect2 BAM-level output and are disabled in annotation-only mode. PureCN posterior is unavailable. Maximum achievable tier is SLT-C. Missing, allele-unmatched, or insufficient-AN gnomAD records are `unevaluable` and are not counted as rarity evidence.
 
 ### Alternative Annotation with VEP
 
@@ -252,6 +256,8 @@ Tab-separated file with the following columns (flexible naming):
 | `POSTERIOR.SOMATIC` | `POSTERIOR_SOMATIC` | PureCN posterior somatic probability |
 | `POPAF` | | Mutect2 negative log10 population allele frequency |
 | `gnomAD_AF` | `gnomAD_exome_AF` | gnomAD exome allele frequency |
+| `gnomAD_AN` | `gnomAD_exome_AN` | gnomAD allele number / evaluability support |
+| `gnomAD_state` | `gnomad_state` | Optional explicit state: `rare_callable`, `common`, or `unevaluable` |
 | `GERMQ` | | Mutect2 germline quality score |
 | `COSMIC_CONFIRMED_SOMATIC` | | COSMIC confirmed somatic count |
 | `COSMIC_HOTSPOT` | | COSMIC hotspot count |
@@ -262,16 +268,18 @@ Tab-separated file with the following columns (flexible naming):
 | `HGVSp_Short` | `Protein_Change`, `AAChange` | Protein change |
 | `Variant_Classification` | `Consequence` | Variant consequence |
 
-Missing fields are handled gracefully (treated as absent evidence).
+Missing fields are handled conservatively. Full mode requires a PureCN posterior column in the schema and fails by default if gnomAD state is unevaluable; use `--allow-unevaluable-gnomad` only for a deliberately conservative analysis. Annotation-only mode treats unevaluable gnomAD as cannot-rule-out SLT-C retention, not as positive rarity evidence.
 
 ## Output
 
-The classifier appends 10 columns to each input row:
+The classifier appends audit columns to each input row:
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `slt_layer1_popaf` | bool | POPAF >= 5.0 |
-| `slt_layer2_gnomad` | bool | gnomAD AF < 0.001 or absent |
+| `slt_gnomad_state` | str | `rare_callable`, `common`, or `unevaluable` |
+| `slt_gnomad_state_reason` | str | reason for gnomAD state assignment |
+| `slt_layer2_gnomad` | bool | true only for `rare_callable` |
 | `slt_layer3_germq` | bool | GERMQ >= 30 |
 | `slt_layer4_cosmic` | bool | COSMIC composite criterion |
 | `slt_n_somatic_layers` | int | Number of passing layers (0-4) |
@@ -291,7 +299,7 @@ Conditions are evaluated in order; the first match determines the tier:
 |------|---------|------------|
 | **SLT-A** | Highest review priority | Posterior >= 0.8 AND evidence in {high, medium} AND not chip_likely |
 | **SLT-B** | Second review priority | Posterior >= 0.5, OR (high evidence AND >= 3 layers); chip_likely blocked |
-| **SLT-C** | Sensitivity-preserving review tier | Posterior >= 0.2, OR evidence in {high, medium} |
+| **SLT-C** | Conservative catchment tier | Posterior >= 0.2, OR evidence in {high, medium} |
 | **SLT-D** | Lowest review priority | All remaining variants |
 
 ### Clinical Workflow Safety Note
@@ -304,7 +312,7 @@ SLT is a triage queue for tumor-only review. It does not replace matched-normal 
 |------|-------------------|
 | **SLT-A** | Review first; require matched-normal, orthogonal, or expert adjudication before clinical reporting or TMB use |
 | **SLT-B** | Review after SLT-A; prioritize clinically relevant genes for confirmation |
-| **SLT-C** | Preserve for sensitivity-focused screening and extended review when clinically relevant |
+| **SLT-C** | Preserve as an extended cannot-rule-out review queue when clinically relevant |
 | **SLT-D** | Lowest-priority queue; revisit only for specific clinical or research hypotheses |
 | **CHIP-likely** | Treat as a safety flag; route through hematology/germline-aware review when clinically indicated |
 
@@ -333,6 +341,8 @@ When PureCN is unavailable (e.g., MAF-level reanalysis without BAM files):
 - PureCN posterior is set to null
 - Maximum achievable tier is SLT-C
 - SLT-A and SLT-B are unreachable
+- Rare-callable/COSMIC-positive, rare-callable/COSMIC-negative, common/COSMIC-positive, unevaluable/COSMIC-positive, and unevaluable/COSMIC-negative profiles route to capped SLT-C
+- Only common/COSMIC-negative profiles route to SLT-D
 
 Use the `--annotation-only` flag (or `--degraded` for backward compatibility).
 
@@ -346,7 +356,7 @@ All thresholds are convention-grounded, frozen, and deterministic:
 | Posterior SLT-B gate | >= 0.5 | PureCN recommended |
 | Posterior SLT-C gate | >= 0.2 | PureCN recommended |
 | POPAF threshold | >= 5.0 | Mutect2 standard (AF <= 1e-5) |
-| gnomAD AF threshold | < 0.001 | ACMG/AMP BA1/BS1 aligned |
+| gnomAD AF threshold | < 0.001 with adequate AN or explicit state | ACMG/AMP BA1/BS1 aligned, callability-aware |
 | GERMQ threshold | >= 30 | Mutect2 standard (<=0.1% germline probability) |
 | COSMIC confirmed min | >= 5 | Conservative recurrence threshold |
 | COSMIC hotspot min | >= 10 | Conservative recurrence threshold |
@@ -358,33 +368,35 @@ All thresholds are convention-grounded, frozen, and deterministic:
 
 Validated on the SEQC2 HCC1395 breast cancer truth set (455 variants in evaluation regions), processed in tumor-only mode:
 
-| Threshold | Called | TP | FP | Sensitivity | PPV | F1 | NNR |
-|-----------|-------|----|----|-------------|-----|-----|-----|
-| >= SLT-A | 105 | 82 | 23 | 18.0% | 78.1% | 0.293 | 1.28 |
-| >= SLT-B | 160 | 102 | 58 | 22.4% | 63.7% | 0.332 | 1.57 |
-| >= SLT-C | 2,423 | 422 | 2,001 | 92.7% | 17.4% | 0.293 | 5.74 |
+| Threshold | Called | TP | Sensitivity | PPV | NNR |
+|-----------|-------:|---:|------------:|----:|----:|
+| >= SLT-A | 101 | 78 | 17.1% | 77.2% | 1.29 |
+| >= SLT-B | 157 | 99 | 21.8% | 63.1% | 1.59 |
+| >= SLT-C | 2,246 | 352 | 77.4% | 15.7% | 6.38 |
+| >= SLT-D | 4,471 | 430 | 94.5% | 9.6% | 10.40 |
 
-PureCN posterior AUROC: 0.775 (95% CI: 0.732-0.817). 100% CGC driver retention at SLT-C. Evidence layers rescued 77.3% of true positives lacking PureCN support.
+The R1 callability-aware correction narrowed SLT-C relative to the original release because missing gnomAD annotation no longer counts as rarity evidence. All tiers together recover the frozen Mutect2-detected truth ceiling (430/455).
 
 ### External validation (BostonGene cell lines)
 
-| Sample | Tumor type | Truth (n) | SLT >=C Sensitivity | SLT >=C PPV | SLT-attributable FN |
-|--------|-----------|-----------|---------------------|-------------|---------------------|
-| COLO829 | Melanoma | 357 | 87.1% | 5.1% | 2 (0.6%) |
-| NCI-H1770 | NSCLC | 1,042 | 81.9% | 7.9% | 23 (2.2%) |
+| Sample | Tumor type | Truth frame | SLT-A/B recovered | SLT-A/B/C recovered | Paired tumor-normal Mutect2 PASS recovered |
+|--------|-----------|------------:|-------------------:|---------------------:|------------------------------------------:|
+| COLO829 | Melanoma | 445 | 37/445 | 125/445 | 264/445 |
+| NCI-H1770 | NSCLC | 1,203 | 151/1,203 | 459/1,203 | 817/1,203 |
+
+These rows position tumor-only SLT as post-calling triage on the local candidate surface, not as a replacement for paired tumor-normal PASS calling.
 
 ### Clinical validation (HdM-BLCA-1 bladder cancer)
 
 Validated on 27 FFPE metastatic urothelial carcinoma patients (Boll et al. 2023, *Sci Rep*; EGA: EGAS00001007086). Reference standard: matched tumor-normal Mutect2 PASS variants (TLOD >= 20, VAF >= 5%). PureCN v2.12.0 with FFPE-adapted min.base.quality = 20.
 
-| Threshold | Sensitivity [95% CI] | PPV | NNR |
+| Threshold | Recall [patient-level 95% CI] | Concordance | NNR |
 |-----------|---------------------|-----|-----|
-| >= SLT-A | 18.2% [17.7-18.7%] | 6.8% | 14.6 |
-| >= SLT-B | 31.8% [31.2-32.4%] | 4.8% | 20.9 |
-| >= SLT-C | 72.3% [71.7-72.9%] | 0.65% | 152.8 |
-| All tiers | 92.2% [91.9-92.5%] | 0.51% | 194.3 |
+| >= SLT-A | 18.2% [14.0-23.5%] | 6.8% | 14.6 |
+| >= SLT-B | 31.8% [25.5-38.7%] | 4.8% | 20.9 |
+| >= SLT-C | 72.3% [68.0-76.7%] | 0.65% | 152.8 |
 
-SLT-A sensitivity on FFPE clinical material (18.2%) matches the SEQC2 cell-line benchmark (18.0%). SLT-B (31.8%) exceeds it (22.4%). The full SLT tier cascade generalizes to clinical FFPE samples when PureCN's base-quality threshold is adapted from the default 25 to 20. Without this adaptation, the default threshold silently removes >95% of FFPE-quality variants before posterior estimation, rendering the precision tiers nonfunctional.
+Clinical rows are concordance/recall analyses versus partially dependent matched-normal references, not independent sensitivity validation. SLT reduces first-pass candidate counts but does not measure review time or create a tumor-board-ready reportable list by itself.
 
 **FFPE deployment note:** Set PureCN `--min-base-quality 20` (or lower) for FFPE samples. SLT-A/B precision tiers require PureCN purity >= ~0.25.
 

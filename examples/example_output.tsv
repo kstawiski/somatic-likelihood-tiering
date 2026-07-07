@@ -1,11 +1,11 @@
-Hugo_Symbol	Variant_Classification	HGVSp_Short	t_alt_freq	POSTERIOR.SOMATIC	POPAF	gnomAD_AF	GERMQ	COSMIC_CONFIRMED_SOMATIC	COSMIC_HOTSPOT	CGC_GENE	COSMIC_SAMPLE	slt_layer1_popaf	slt_layer2_gnomad	slt_layer3_germq	slt_layer4_cosmic	slt_n_somatic_layers	slt_evidence_level	slt_chip_status	slt_posterior_used	slt_tier	slt_mode
-TP53	Missense_Mutation	R175H	0.35	0.98	40.0	0.00001	50	150	200	TRUE	500	True	True	True	True	4	high	chip_possible	0.98	SLT-A	full
-FGFR3	Missense_Mutation	S249C	0.28	0.92	35.0	0.0	45	80	120	TRUE	300	True	True	True	True	4	high	no_chip	0.92	SLT-A	full
-PIK3CA	Missense_Mutation	E545K	0.15	0.85	30.0	0.00005	40	100	150	TRUE	400	True	True	True	True	4	high	no_chip	0.85	SLT-A	full
-DNMT3A	Missense_Mutation	R882H	0.08	0.90	25.0	0.00001	35	50	80	FALSE	100	True	True	True	True	4	high	chip_likely	0.9	SLT-B	full
-BRCA2	Missense_Mutation	K1200E	0.50	0.02	0.5	0.15	5	0	0	FALSE	1	False	False	False	False	0	low	no_chip	0.02	SLT-D	full
-TAS2R43	Silent	V100V	0.12	0.00	40.0	0.0	50	0	0	FALSE	0	True	True	True	False	3	medium	no_chip	0.0	SLT-C	full
-MUC17	Missense_Mutation	A500T	0.18	0.05	20.0	0.0005	30	3	0	FALSE	5	True	True	True	False	3	medium	no_chip	0.05	SLT-C	full
-KRAS	Missense_Mutation	G12D	0.04	0.75	15.0	0.0	25	200	300	TRUE	800	True	True	False	True	3	high	chip_likely	0.75	SLT-B	full
-ERCC2	Nonsense_Mutation	Q400X	0.22	0.60	30.0	0.0	40	10	0	TRUE	20	True	True	True	True	4	high	no_chip	0.6	SLT-B	full
-OBSCN	Missense_Mutation	P1500S	0.45	0.10	1.0	0.01	10	0	0	FALSE	0	False	False	False	False	0	low	no_chip	0.1	SLT-D	full
+Hugo_Symbol	Variant_Classification	HGVSp_Short	t_alt_freq	POSTERIOR.SOMATIC	POPAF	gnomAD_AF	gnomAD_AN	GERMQ	COSMIC_CONFIRMED_SOMATIC	COSMIC_HOTSPOT	CGC_GENE	COSMIC_SAMPLE	slt_layer1_popaf	slt_gnomad_state	slt_gnomad_state_reason	slt_layer2_gnomad	slt_layer3_germq	slt_layer4_cosmic	slt_n_somatic_layers	slt_evidence_level	slt_chip_status	slt_posterior_status	slt_posterior_used	slt_annotation_only_matrix_cell	slt_tier	slt_mode	slt_schema_version	slt_layer2_semantics
+TP53	Missense_Mutation	R175H	0.35	0.98	40.0	0.00001	20000	50	150	200	TRUE	500	True	rare_callable	rare_af_with_adequate_an	True	True	True	4	high	chip_possible	present	0.98		SLT-A	full	R1-callability-posterior-v2	gnomAD rare_callable only
+FGFR3	Missense_Mutation	S249C	0.28	0.92	35.0	0.0	20000	45	80	120	TRUE	300	True	rare_callable	rare_af_with_adequate_an	True	True	True	4	high	no_chip	present	0.92		SLT-A	full	R1-callability-posterior-v2	gnomAD rare_callable only
+PIK3CA	Missense_Mutation	E545K	0.15	0.85	30.0	0.00005	20000	40	100	150	TRUE	400	True	rare_callable	rare_af_with_adequate_an	True	True	True	4	high	no_chip	present	0.85		SLT-A	full	R1-callability-posterior-v2	gnomAD rare_callable only
+DNMT3A	Missense_Mutation	R882H	0.08	0.90	25.0	0.00001	20000	35	50	80	FALSE	100	True	rare_callable	rare_af_with_adequate_an	True	True	True	4	high	chip_likely	present	0.9		SLT-C	full	R1-callability-posterior-v2	gnomAD rare_callable only
+BRCA2	Missense_Mutation	K1200E	0.50	0.02	0.5	0.15	20000	5	0	0	FALSE	1	False	common	af_at_or_above_threshold	False	False	False	0	low	no_chip	present	0.02		SLT-D	full	R1-callability-posterior-v2	gnomAD rare_callable only
+TAS2R43	Silent	V100V	0.12	0.00	40.0	0.0	20000	50	0	0	FALSE	0	True	rare_callable	rare_af_with_adequate_an	True	True	False	3	medium	no_chip	present	0.0		SLT-C	full	R1-callability-posterior-v2	gnomAD rare_callable only
+MUC17	Missense_Mutation	A500T	0.18	0.05	20.0	0.0005	20000	30	3	0	FALSE	5	True	rare_callable	rare_af_with_adequate_an	True	True	False	3	medium	no_chip	present	0.05		SLT-C	full	R1-callability-posterior-v2	gnomAD rare_callable only
+KRAS	Missense_Mutation	G12D	0.04	0.75	15.0	0.0	20000	25	200	300	TRUE	800	True	rare_callable	rare_af_with_adequate_an	True	False	True	3	high	chip_likely	present	0.75		SLT-C	full	R1-callability-posterior-v2	gnomAD rare_callable only
+ERCC2	Nonsense_Mutation	Q400X	0.22	0.60	30.0	0.0	20000	40	10	0	TRUE	20	True	rare_callable	rare_af_with_adequate_an	True	True	True	4	high	no_chip	present	0.6		SLT-B	full	R1-callability-posterior-v2	gnomAD rare_callable only
+OBSCN	Missense_Mutation	P1500S	0.45	0.10	1.0	0.01	20000	10	0	0	FALSE	0	False	common	af_at_or_above_threshold	False	False	False	0	low	no_chip	present	0.1		SLT-D	full	R1-callability-posterior-v2	gnomAD rare_callable only

@@ -1,0 +1,62 @@
+{
+  "title": "Somatic Likelihood Tiering (SLT): an SNV-calibrated interpretable post-calling triage protocol for tumor-only whole-exome variant review",
+  "upload_type": "software",
+  "description": "Somatic Likelihood Tiering (SLT) is a deterministic, callability-aware post-calling triage protocol for tumor-only whole-exome variant review. Version 2.1.0 implements the R1 gnomAD three-state Layer 2 contract, annotation-only six-cell routing, PureCN posterior preflight checks, and CHIP safety flagging used in the revised BIB submission package.",
+  "creators": [
+    {
+      "name": "Stawiski, Konrad",
+      "affiliation": "Dana-Farber Cancer Institute; Medical University of Lodz; Brigham and Women's Hospital",
+      "orcid": "0000-0002-1667-3449"
+    },
+    {
+      "name": "Kamran, Sophia C.",
+      "affiliation": "Mass General Brigham; Brigham and Women's Hospital"
+    },
+    {
+      "name": "Perera-Bel, Julia",
+      "affiliation": "PSMAR Hospital del Mar Medical Research Institute (IMIM), Barcelona"
+    },
+    {
+      "name": "Lee, Jihyun",
+      "affiliation": "Brigham and Women's Hospital"
+    },
+    {
+      "name": "Bellmunt, Joaquim",
+      "affiliation": "PSMAR Hospital del Mar Medical Research Institute (IMIM), Barcelona; Harvard Medical School; Dana-Farber Cancer Institute"
+    },
+    {
+      "name": "Mouw, Kent W.",
+      "affiliation": "Dana-Farber Cancer Institute; Harvard Medical School"
+    },
+    {
+      "name": "De Carvalho, Filipe L. F.",
+      "affiliation": "Brigham and Women's Hospital; Harvard Medical School"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "version": "2.1.0",
+  "keywords": [
+    "somatic variant triage",
+    "tumor-only sequencing",
+    "whole-exome sequencing",
+    "gnomAD",
+    "callability",
+    "clonal hematopoiesis",
+    "PureCN",
+    "bioinformatics"
+  ],
+  "grants": [
+    {
+      "id": "BPN/WAL/2024/1/00014"
+    }
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/kstawiski/somatic-likelihood-tiering",
+      "relation": "isSupplementTo",
+      "resource_type": "software",
+      "scheme": "url"
+    }
+  ]
+}
