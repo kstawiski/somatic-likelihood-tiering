@@ -46,11 +46,6 @@
     "PureCN",
     "bioinformatics"
   ],
-  "grants": [
-    {
-      "id": "BPN/WAL/2024/1/00014"
-    }
-  ],
   "related_identifiers": [
     {
       "identifier": "https://github.com/kstawiski/somatic-likelihood-tiering",
